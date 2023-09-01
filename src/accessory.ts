@@ -64,7 +64,7 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
   }
 
   async init() {
-    const noble = await import("@abandonware/noble");
+    const noble = (await import("@abandonware/noble")).default;
 
     noble.on("discover", async (peripheral) => {
       if (peripheral.address !== this.address) return;
