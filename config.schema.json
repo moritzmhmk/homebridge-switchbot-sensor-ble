@@ -1,0 +1,32 @@
+{
+  "pluginAlias": "SwitchBotSensorBLE",
+  "pluginType": "accessory",
+  "singular": false,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "format": "string",
+        "default": "Hygrometer",
+        "minLength": 1,
+        "required": true
+      },
+      "address": {
+        "title": "MAC address",
+        "type": "string",
+        "format": "string",
+        "placeholder": "e.g. ab:cd:ef:01:23:45",
+        "required": true,
+        "description": "The MAC Address can be found in the SwitchBot App or by using a Bluetooth LE Scanner App."
+      },
+      "timeout": {
+        "title": "Timeout",
+        "type": "integer",
+        "default": 300,
+        "description": "Time in seconds of no contact after that the accessory should be regarded as offline."
+      }
+    }
+  }
+}
