@@ -38,7 +38,7 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
     this.hap = hap;
     this.log = log;
     this.address = config.address;
-    this.timeout = config.timeout || 20;
+    this.timeout = config.timeout || 5 * 60;
 
     this.informationService = new hap.Service.AccessoryInformation()
       .setCharacteristic(hap.Characteristic.Manufacturer, "SwitchBot")
