@@ -1,0 +1,37 @@
+{
+  "name": "homebridge-switchbot-sensor-ble",
+  "version": "1.0.0",
+  "description": "Homebridge Plugin for the SwitchBot Indoor/Outdoor Thermo-Hygrometer",
+  "main": "dist/accessory.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moritzmhmk/homebridge-switchbot-sensor-ble.git"
+  },
+  "engines": {
+    "homebridge": ">=1.0.0"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "switchbot",
+    "ble",
+    "sensor",
+    "WoIOSensorTH"
+  ],
+  "author": "Moritz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/moritzmhmk/homebridge-switchbot-sensor-ble/issues"
+  },
+  "homepage": "https://github.com/moritzmhmk/homebridge-switchbot-sensor-ble#readme",
+  "devDependencies": {
+    "@types/node": "^20.5.7",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@abandonware/noble": "^1.9.2-23"
+  }
+}
