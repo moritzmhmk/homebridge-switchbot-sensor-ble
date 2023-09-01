@@ -1,3 +1,4 @@
+import type { Advertisement } from "@abandonware/noble";
 import {
   AccessoryConfig,
   AccessoryPlugin,
@@ -9,14 +10,7 @@ import {
 
 const { version: packageVersion } = require("../package.json");
 
-import noble from "@abandonware/noble";
-
 export = (api: API) => {
-  noble.on("stateChange", async (state) => {
-    if (state === "poweredOn") {
-      await noble.startScanningAsync([], true);
-    }
-  });
   api.registerAccessory("SwitchBotSensorBLE", SwitchBotSensorBLE);
 };
 
@@ -53,51 +47,11 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
     );
     this.humiditySensorService = new hap.Service.HumiditySensor("Humidity");
 
-    noble.on("discover", async (peripheral) => {
-      if (peripheral.address !== this.address) return;
-
-      const data = peripheral.advertisement.manufacturerData;
-      // https://github.com/OpenWonderLabs/SwitchBotAPI-BLE/blob/latest/devicetypes/meter.md#outdoor-temperaturehumidity-sensor
-      const temperature =
-        ((data[10] & 0x0f) * 0.1 + (data[11] & 0x7f)) *
-        ((data[11] & 0x80) > 0 ? 1 : -1);
-      const humidity = data[12] & 0x7f;
-
-      const serviceData = peripheral.advertisement.serviceData[0];
-      const batteryLevel = serviceData.data[2] & 0x7f; // this is undocumented?
-
-      this.log.debug(
-        `Received data: ${temperature}°C, ${humidity}% rel. Hum., ${batteryLevel}% Bat.`
-      );
-
-      // when there is currently no timeout the device was offline
-      if (this.offline) {
-        this.log.info(`Received data, device is now online.`);
-        this.offline = false;
-      }
-      this.resetOfflineTimeout();
-
-      this.temperatureSensorService.updateCharacteristic(
-        hap.Characteristic.CurrentTemperature,
-        temperature
-      );
-      this.humiditySensorService.updateCharacteristic(
-        hap.Characteristic.CurrentRelativeHumidity,
-        humidity
-      );
-      this.batteryService.updateCharacteristic(
-        hap.Characteristic.StatusLowBattery,
-        batteryLevel < 15
-          ? hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-          : hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
-      );
-      this.batteryService.updateCharacteristic(
-        hap.Characteristic.BatteryLevel,
-        batteryLevel
-      );
-    });
-
-    log.info("SwitchBotSensorBLE finished initializing!");
+    this.init()
+      .then(() => log.info("SwitchBotSensorBLE finished initializing!"))
+      .catch(() => {
+        log.error("SwitchBotSensorBLE failed to initialize!");
+      });
   }
 
   getServices(): Service[] {
@@ -107,6 +61,63 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
       this.temperatureSensorService,
       this.humiditySensorService,
     ];
+  }
+
+  async init() {
+    const noble = await import("@abandonware/noble");
+
+    noble.on("discover", async (peripheral) => {
+      if (peripheral.address !== this.address) return;
+      this.updateFromAdvertisement(peripheral.advertisement);
+    });
+
+    noble.on("stateChange", async (state) => {
+      if (state === "poweredOn") {
+        await noble.startScanningAsync([], true);
+      }
+    });
+  }
+
+  updateFromAdvertisement(advertisement: Advertisement): void {
+    const data = advertisement.manufacturerData;
+    // https://github.com/OpenWonderLabs/SwitchBotAPI-BLE/blob/latest/devicetypes/meter.md#outdoor-temperaturehumidity-sensor
+    const temperature =
+      ((data[10] & 0x0f) * 0.1 + (data[11] & 0x7f)) *
+      ((data[11] & 0x80) > 0 ? 1 : -1);
+    const humidity = data[12] & 0x7f;
+
+    const serviceData = advertisement.serviceData[0];
+    const batteryLevel = serviceData.data[2] & 0x7f; // this is undocumented?
+
+    this.log.debug(
+      `Received data: ${temperature}°C, ${humidity}% rel. Hum., ${batteryLevel}% Bat.`
+    );
+
+    // when there is currently no timeout the device was offline
+    if (this.offline) {
+      this.log.info(`Received data, device is now online.`);
+      this.offline = false;
+    }
+    this.resetOfflineTimeout();
+
+    this.temperatureSensorService.updateCharacteristic(
+      this.hap.Characteristic.CurrentTemperature,
+      temperature
+    );
+    this.humiditySensorService.updateCharacteristic(
+      this.hap.Characteristic.CurrentRelativeHumidity,
+      humidity
+    );
+    this.batteryService.updateCharacteristic(
+      this.hap.Characteristic.StatusLowBattery,
+      batteryLevel < 15
+        ? this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+        : this.hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
+    );
+    this.batteryService.updateCharacteristic(
+      this.hap.Characteristic.BatteryLevel,
+      batteryLevel
+    );
   }
 
   resetOfflineTimeout(): void {
