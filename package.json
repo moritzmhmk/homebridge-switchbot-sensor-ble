@@ -33,6 +33,7 @@
   "homepage": "https://github.com/moritzmhmk/homebridge-switchbot-sensor-ble#readme",
   "devDependencies": {
     "@types/node": "^20.5.7",
+    "homebridge": "^1.6.1",
     "typescript": "^5.2.2"
   },
   "dependencies": {
