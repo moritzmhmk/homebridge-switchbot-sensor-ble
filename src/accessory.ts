@@ -49,8 +49,9 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
 
     this.init()
       .then(() => log.info("SwitchBotSensorBLE finished initializing!"))
-      .catch(() => {
+      .catch((err) => {
         log.error("SwitchBotSensorBLE failed to initialize!");
+        log.error(err);
       });
   }
 
