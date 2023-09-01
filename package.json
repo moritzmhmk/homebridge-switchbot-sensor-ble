@@ -11,6 +11,10 @@
     "type": "git",
     "url": "git+https://github.com/moritzmhmk/homebridge-switchbot-sensor-ble.git"
   },
+  "files": [
+    "config.schema.json",
+    "dist/"
+  ],
   "engines": {
     "homebridge": ">=1.0.0"
   },
