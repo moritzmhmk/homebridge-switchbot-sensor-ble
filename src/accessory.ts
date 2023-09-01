@@ -7,6 +7,8 @@ import {
   Service,
 } from "homebridge";
 
+const { version: packageVersion } = require("../package.json");
+
 import noble from "@abandonware/noble";
 
 export = (api: API) => {
@@ -36,11 +38,15 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
     this.hap = hap;
     this.log = log;
     this.address = config.address;
-    this.timeout = config.timeout || 5 * 60;
+    this.timeout = config.timeout || 20;
 
     this.informationService = new hap.Service.AccessoryInformation()
       .setCharacteristic(hap.Characteristic.Manufacturer, "SwitchBot")
-      .setCharacteristic(hap.Characteristic.Model, "W3400010");
+      .setCharacteristic(hap.Characteristic.Model, "W3400010")
+      .setCharacteristic(hap.Characteristic.Name, config.name)
+      .setCharacteristic(hap.Characteristic.SerialNumber, this.address)
+      .setCharacteristic(hap.Characteristic.FirmwareRevision, packageVersion);
+
     this.batteryService = new hap.Service.Battery("Battery");
     this.temperatureSensorService = new hap.Service.TemperatureSensor(
       "Temperature"
