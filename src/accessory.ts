@@ -3,6 +3,7 @@ import {
   AccessoryPlugin,
   API,
   Characteristic,
+  HAP,
   Logging,
   Service,
 } from "homebridge";
@@ -19,8 +20,10 @@ export = (api: API) => {
 };
 
 class SwitchBotSensorBLE implements AccessoryPlugin {
+  private readonly hap: HAP;
   private readonly log: Logging;
   private readonly address: string;
+  private readonly timeout: number;
 
   private readonly informationService: Service;
   private readonly batteryService: Service;
@@ -32,9 +35,13 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
   private readonly currentTemperature: Characteristic;
   private readonly currentRelativeHumidity: Characteristic;
 
+  private offlineTimeout?: NodeJS.Timeout;
+
   constructor(log: Logging, config: AccessoryConfig, { hap }: API) {
+    this.hap = hap;
     this.log = log;
     this.address = config.address;
+    this.timeout = config.timeout || 5 * 60;
 
     this.informationService = new hap.Service.AccessoryInformation()
       .setCharacteristic(hap.Characteristic.Manufacturer, "SwitchBot")
@@ -63,6 +70,8 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
     noble.on("discover", async (peripheral) => {
       if (peripheral.address !== this.address) return;
 
+      this.resetOfflineTimeout();
+
       const data = peripheral.advertisement.manufacturerData;
       // https://github.com/OpenWonderLabs/SwitchBotAPI-BLE/blob/latest/devicetypes/meter.md#outdoor-temperaturehumidity-sensor
       const temperature =
@@ -73,8 +82,8 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
       const serviceData = peripheral.advertisement.serviceData[0];
       const batteryLevel = serviceData.data[2] & 0x7f; // this is undocumented?
 
-      this.log.info(
-        `${temperature}°C, ${humidity}% rel. Hum., ${batteryLevel}% Bat.`
+      this.log.debug(
+        `Received data: ${temperature}°C, ${humidity}% rel. Hum., ${batteryLevel}% Bat.`
       );
 
       this.currentTemperature.updateValue(temperature);
@@ -97,5 +106,25 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
       this.temperatureSensorService,
       this.humiditySensorService,
     ];
+  }
+
+  resetOfflineTimeout(): void {
+    clearTimeout(this.offlineTimeout);
+    this.offlineTimeout = setTimeout(() => {
+      this.log.warn(
+        `Received no message for ${this.timeout} seconds - device offline.`
+      );
+      const timeoutError = new this.hap.HapStatusError(
+        this.hap.HAPStatus.OPERATION_TIMED_OUT
+      );
+      this.temperatureSensorService.updateCharacteristic(
+        this.hap.Characteristic.CurrentTemperature,
+        timeoutError
+      );
+      this.humiditySensorService.updateCharacteristic(
+        this.hap.Characteristic.CurrentRelativeHumidity,
+        timeoutError
+      );
+    }, this.timeout * 1000);
   }
 }
