@@ -3,17 +3,11 @@ import {
   AccessoryPlugin,
   API,
   Characteristic,
-  CharacteristicEventTypes,
-  CharacteristicGetCallback,
-  CharacteristicSetCallback,
-  CharacteristicValue,
-  HAP,
   Logging,
   Service,
 } from "homebridge";
 
 import noble from "@abandonware/noble";
-import { threadId } from "worker_threads";
 
 export = (api: API) => {
   noble.on("stateChange", async (state) => {
@@ -26,7 +20,6 @@ export = (api: API) => {
 
 class SwitchBotSensorBLE implements AccessoryPlugin {
   private readonly log: Logging;
-  private readonly name: string;
   private readonly address: string;
 
   private readonly informationService: Service;
@@ -41,14 +34,13 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
 
   constructor(log: Logging, config: AccessoryConfig, { hap }: API) {
     this.log = log;
-    this.name = config.name;
     this.address = config.address;
 
     this.informationService = new hap.Service.AccessoryInformation()
       .setCharacteristic(hap.Characteristic.Manufacturer, "SwitchBot")
       .setCharacteristic(hap.Characteristic.Model, "W3400010");
 
-    this.batteryService = new hap.Service.Battery();
+    this.batteryService = new hap.Service.Battery("Battery");
     this.statusLowBattery = this.batteryService.getCharacteristic(
       hap.Characteristic.StatusLowBattery
     );
@@ -56,16 +48,17 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
       hap.Characteristic.BatteryLevel
     );
 
-    this.temperatureSensorService = new hap.Service.TemperatureSensor();
+    this.temperatureSensorService = new hap.Service.TemperatureSensor(
+      "Temperature"
+    );
     this.currentTemperature = this.temperatureSensorService.getCharacteristic(
       hap.Characteristic.CurrentTemperature
     );
 
-    this.humiditySensorService = new hap.Service.HumiditySensor();
-    this.currentRelativeHumidity =
-      this.temperatureSensorService.getCharacteristic(
-        hap.Characteristic.CurrentRelativeHumidity
-      );
+    this.humiditySensorService = new hap.Service.HumiditySensor("Humidity");
+    this.currentRelativeHumidity = this.humiditySensorService.getCharacteristic(
+      hap.Characteristic.CurrentRelativeHumidity
+    );
 
     noble.on("discover", async (peripheral) => {
       if (peripheral.address !== this.address) return;
@@ -98,6 +91,11 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
   }
 
   getServices(): Service[] {
-    return [this.informationService, this.temperatureSensorService];
+    return [
+      this.informationService,
+      this.batteryService,
+      this.temperatureSensorService,
+      this.humiditySensorService,
+    ];
   }
 }
