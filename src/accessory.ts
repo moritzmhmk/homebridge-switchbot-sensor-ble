@@ -2,7 +2,6 @@ import {
   AccessoryConfig,
   AccessoryPlugin,
   API,
-  Characteristic,
   HAP,
   Logging,
   Service,
@@ -30,11 +29,6 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
   private readonly temperatureSensorService: Service;
   private readonly humiditySensorService: Service;
 
-  private readonly statusLowBattery: Characteristic;
-  private readonly batteryLevel: Characteristic;
-  private readonly currentTemperature: Characteristic;
-  private readonly currentRelativeHumidity: Characteristic;
-
   private offlineTimeout?: NodeJS.Timeout;
 
   constructor(log: Logging, config: AccessoryConfig, { hap }: API) {
@@ -46,26 +40,11 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
     this.informationService = new hap.Service.AccessoryInformation()
       .setCharacteristic(hap.Characteristic.Manufacturer, "SwitchBot")
       .setCharacteristic(hap.Characteristic.Model, "W3400010");
-
     this.batteryService = new hap.Service.Battery("Battery");
-    this.statusLowBattery = this.batteryService.getCharacteristic(
-      hap.Characteristic.StatusLowBattery
-    );
-    this.batteryLevel = this.batteryService.getCharacteristic(
-      hap.Characteristic.BatteryLevel
-    );
-
     this.temperatureSensorService = new hap.Service.TemperatureSensor(
       "Temperature"
     );
-    this.currentTemperature = this.temperatureSensorService.getCharacteristic(
-      hap.Characteristic.CurrentTemperature
-    );
-
     this.humiditySensorService = new hap.Service.HumiditySensor("Humidity");
-    this.currentRelativeHumidity = this.humiditySensorService.getCharacteristic(
-      hap.Characteristic.CurrentRelativeHumidity
-    );
 
     noble.on("discover", async (peripheral) => {
       if (peripheral.address !== this.address) return;
@@ -86,14 +65,24 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
         `Received data: ${temperature}°C, ${humidity}% rel. Hum., ${batteryLevel}% Bat.`
       );
 
-      this.currentTemperature.updateValue(temperature);
-      this.currentRelativeHumidity.updateValue(humidity);
-      this.statusLowBattery.updateValue(
+      this.temperatureSensorService.updateCharacteristic(
+        hap.Characteristic.CurrentTemperature,
+        temperature
+      );
+      this.humiditySensorService.updateCharacteristic(
+        hap.Characteristic.CurrentRelativeHumidity,
+        humidity
+      );
+      this.batteryService.updateCharacteristic(
+        hap.Characteristic.StatusLowBattery,
         batteryLevel < 15
           ? hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
           : hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL
       );
-      this.batteryLevel.updateValue(batteryLevel);
+      this.batteryService.updateCharacteristic(
+        hap.Characteristic.BatteryLevel,
+        batteryLevel
+      );
     });
 
     log.info("SwitchBotSensorBLE finished initializing!");
