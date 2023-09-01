@@ -30,6 +30,7 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
   private readonly humiditySensorService: Service;
 
   private offlineTimeout?: NodeJS.Timeout;
+  private offline = true;
 
   constructor(log: Logging, config: AccessoryConfig, { hap }: API) {
     this.hap = hap;
@@ -49,8 +50,6 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
     noble.on("discover", async (peripheral) => {
       if (peripheral.address !== this.address) return;
 
-      this.resetOfflineTimeout();
-
       const data = peripheral.advertisement.manufacturerData;
       // https://github.com/OpenWonderLabs/SwitchBotAPI-BLE/blob/latest/devicetypes/meter.md#outdoor-temperaturehumidity-sensor
       const temperature =
@@ -64,6 +63,13 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
       this.log.debug(
         `Received data: ${temperature}°C, ${humidity}% rel. Hum., ${batteryLevel}% Bat.`
       );
+
+      // when there is currently no timeout the device was offline
+      if (this.offline) {
+        this.log.info(`Received data, device is now online.`);
+        this.offline = false;
+      }
+      this.resetOfflineTimeout();
 
       this.temperatureSensorService.updateCharacteristic(
         hap.Characteristic.CurrentTemperature,
@@ -103,6 +109,7 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
       this.log.warn(
         `Received no message for ${this.timeout} seconds - device offline.`
       );
+      this.offline = true;
       const timeoutError = new this.hap.HapStatusError(
         this.hap.HAPStatus.OPERATION_TIMED_OUT
       );
