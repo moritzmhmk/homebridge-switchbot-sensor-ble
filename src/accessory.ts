@@ -80,15 +80,21 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
   }
 
   updateFromAdvertisement(advertisement: Advertisement): void {
-    const data = advertisement.manufacturerData;
+    const md = advertisement.manufacturerData;
+    const sd = advertisement.serviceData[0]?.data;
     // https://github.com/OpenWonderLabs/SwitchBotAPI-BLE/blob/latest/devicetypes/meter.md#outdoor-temperaturehumidity-sensor
-    const temperature =
-      ((data[10] & 0x0f) * 0.1 + (data[11] & 0x7f)) *
-      ((data[11] & 0x80) > 0 ? 1 : -1);
-    const humidity = data[12] & 0x7f;
 
-    const serviceData = advertisement.serviceData[0];
-    const batteryLevel = serviceData.data[2] & 0x7f; // this is undocumented?
+    if (md?.length !== 14 || sd?.length !== 3) {
+      this.log.warn(`Received invalid advertisement for ${this.address}.`);
+      return;
+    }
+
+    const temperature =
+      ((md[10] & 0x0f) * 0.1 + (md[11] & 0x7f)) *
+      ((md[11] & 0x80) > 0 ? 1 : -1);
+    const humidity = md[12] & 0x7f;
+
+    const batteryLevel = sd[2] & 0x7f;
 
     this.log.debug(
       `Received data: ${temperature}°C, ${humidity}% rel. Hum., ${batteryLevel}% Bat.`
