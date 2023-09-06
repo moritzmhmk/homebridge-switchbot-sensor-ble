@@ -80,13 +80,39 @@ class SwitchBotSensorBLE implements AccessoryPlugin {
   }
 
   updateFromAdvertisement(advertisement: Advertisement): void {
-    const md = advertisement.manufacturerData;
-    const sd = advertisement.serviceData[0]?.data;
-    // https://github.com/OpenWonderLabs/SwitchBotAPI-BLE/blob/latest/devicetypes/meter.md#outdoor-temperaturehumidity-sensor
+    const MD_MIN_LENGTH = 13;
+    const SD_MIN_LENGTH = 3;
+    const DEVICE_TYPES = [
+      "t", // WoSensorTH
+      "w", // WoIOSensorTH
+    ];
 
-    if (md?.length !== 14 || sd?.length !== 3) {
-      this.log.warn(`Received invalid advertisement for ${this.address}.`);
+    const md = advertisement.manufacturerData;
+    if (!md || !Buffer.isBuffer(md) || md.length < MD_MIN_LENGTH) {
+      this.log.warn(`Received invalid manufacturer data for ${this.address}.`);
       return;
+    }
+    const sd = advertisement.serviceData[0]?.data;
+    if (!sd || !Buffer.isBuffer(sd) || sd.length < SD_MIN_LENGTH) {
+      // 0x0969 = Woan Technology
+      this.log.warn(`Received invalid service data for ${this.address}.`);
+      return;
+    }
+
+    const companyIdentifier = md.readInt16LE();
+    if (companyIdentifier !== 0x0969) {
+      // 0x0969 = Woan Technology
+      this.log.info(
+        `Received unexpected company identifier "${companyIdentifier}" for ${this.address} - will try to decode anyway.`
+      );
+    }
+
+    const deviceType = String.fromCharCode(sd[0] & 0x7f);
+    if (!DEVICE_TYPES.includes(deviceType.toLowerCase())) {
+      // 0x0969 = Woan Technology
+      this.log.info(
+        `Received unexpected device type "${deviceType}" for ${this.address} - will try to decode anyway.`
+      );
     }
 
     const temperature =
