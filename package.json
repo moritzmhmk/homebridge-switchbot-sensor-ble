@@ -1,6 +1,6 @@
 {
   "name": "homebridge-switchbot-sensor-ble",
-  "version": "1.3.3",
+  "version": "1.4.0",
   "description": "Homebridge Plugin for the SwitchBot Indoor/Outdoor Thermo-Hygrometer",
   "main": "dist/accessory.js",
   "scripts": {
