@@ -1,5 +1,7 @@
 # Homebridge plugin for SwitchBot Hygrometer.
 
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+
 This plugin provides a simple accessory-style plugin.
 
 ## Device support
